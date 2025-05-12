@@ -3,6 +3,7 @@ package edu.ucr.cs.cs167.group19;
 import edu.ucr.cs.cs167.group19.IsEven;
 import edu.ucr.cs.cs167.group19.IsDivisibleByThree;
 
+import java.util.Arrays;
 import java.util.function.Function;
 
 public class App {
@@ -114,19 +115,61 @@ public class App {
 //    }
 
     // Sử dụng cách tạo hàm tham số (Parametrized Functions)
+//    public static void main(String[] args) {
+//        if (args.length < 3) {
+//            System.out.println("Error: At least three parameters expected, from, to, and base.");
+//            return;
+//        }
+//
+//        int from = Integer.parseInt(args[0]);
+//        int to = Integer.parseInt(args[1]);
+//        int base = Integer.parseInt(args[2]);
+//
+//        Function<Integer, Boolean> divisibleByBase = x -> x % base == 0;
+//        printNumbers(from, to, divisibleByBase);
+//    }
+//    public static void printNumbers(int from, int to, Function<Integer, Boolean> filter) {
+//        System.out.printf("Printing numbers in the range [%d,%d]\n", from, to);
+//        for (int i = from; i <= to; i++) {
+//            if (filter.apply(i)) {
+//                System.out.println(i);
+//            }
+//        }
+//    }
+
+
+    // Sử dụng hợp thành hàm (Function Composition)
     public static void main(String[] args) {
         if (args.length < 3) {
-            System.out.println("Error: At least three parameters expected, from, to, and base.");
+            System.err.println("Error: At least three parameters expected, from, to, and base.");
             return;
         }
-
         int from = Integer.parseInt(args[0]);
         int to = Integer.parseInt(args[1]);
-        int base = Integer.parseInt(args[2]);
 
-        Function<Integer, Boolean> divisibleByBase = x -> x % base == 0;
-        printNumbers(from, to, divisibleByBase);
+        String baseParam = args[2];
+        String separator = baseParam.contains(",") ? "," : "v";
+        String[] baseStrings = baseParam.split(separator);
+        int[] bases = Arrays.stream(baseStrings).mapToInt(Integer::parseInt).toArray();
+
+        @SuppressWarnings("unchecked")
+        Function<Integer, Boolean>[] filters = new Function[bases.length];
+
+        for (int i = 0; i < bases.length; i++) {
+            int currentBase = bases[i];
+            filters[i] = x -> x % currentBase == 0;
+        }
+
+        Function<Integer, Boolean> finalFilter;
+        if (separator.equals(",")) {
+            finalFilter = combineWithAnd(filters);
+        } else {
+            finalFilter = combineWithOr(filters);
+        }
+
+        printNumbers(from, to, finalFilter);
     }
+
     public static void printNumbers(int from, int to, Function<Integer, Boolean> filter) {
         System.out.printf("Printing numbers in the range [%d,%d]\n", from, to);
         for (int i = from; i <= to; i++) {
@@ -134,5 +177,23 @@ public class App {
                 System.out.println(i);
             }
         }
+    }
+
+    public static Function<Integer, Boolean> combineWithAnd(Function<Integer, Boolean>... filters) {
+        return x -> {
+            for (Function<Integer, Boolean> filter : filters) {
+                if (!filter.apply(x)) return false;
+            }
+            return true;
+        };
+    }
+
+    public static Function<Integer, Boolean> combineWithOr(Function<Integer, Boolean>... filters) {
+        return x -> {
+            for (Function<Integer, Boolean> filter : filters) {
+                if (filter.apply(x)) return true;
+            }
+            return false;
+        };
     }
 }
